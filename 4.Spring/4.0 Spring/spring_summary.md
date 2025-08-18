@@ -33,3 +33,46 @@
 
 **SmartLifecycle** - это расширение Lifecycle интерфейса. Отличие в том, что он срабатывает во время обновления (refresh) и закрытия (close) контекста.
 
+#### Self injection
+```java
+@Component
+public class MyBean {
+    @Autowired
+    private MyBean self;
+
+    public void doSomething() {
+        // use self reference here
+    }
+}
+```
+
+```java
+@Component
+public class MyBean {
+    private MyBean self;
+
+    @Autowired
+    public MyBean(MyBean self) {
+        this.self = self;
+    }
+
+    // ...
+}
+```
+```java
+@Component
+public class MyBean implements ApplicationContextAware {
+    private ApplicationContext context;
+
+    @Override
+    public void setApplicationContext(ApplicationContext context) throws BeansException {
+        this.context = context;
+    }
+
+    public void doSomething() {
+        MyBean self = context.getBean(MyBean.class);
+        // ...
+    }
+}
+```
+
