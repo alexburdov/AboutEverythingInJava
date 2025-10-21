@@ -126,3 +126,7 @@ CREATE INDEX idx_email ON users(email) WITH (fillfactor = 90);
 **MySQL vs MongoDB**
 
 ![img.png](img/main00.png)
+
+**Быстрая справка по масштабированию баз данных**
+
+![img.png](img/sum_00.png)
