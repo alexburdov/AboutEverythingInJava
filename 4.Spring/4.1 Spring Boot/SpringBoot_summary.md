@@ -63,3 +63,24 @@ spring.threads.virtual.enabled: true
 - Health/Readiness. Если нужен «строгий» запуск, проверяйте готовность только по минимальному набору ключей, а остальное догревайте фоном.
 - Кластеры. В Redis/общем кеше греть можно с одного инстанса (feature-flag), чтобы не дублировать трафик. В локальных (Caffeine) - грейте на каждом.
 - Обновление после прогрева. Для данных, которые быстро стареют, добавьте @Scheduled обновление (@CacheEvict/@CachePut) или фоновые рефреши.
+
+#### @SpringBootApplication
+
+Чтобы понять, что вызывает @SpringBootApplication и как работает, достаточно посмотреть в доку или зайти в аннотацию прям из IDEA:
+```java
+@SpringBootConfiguration
+@EnableAutoConfiguration
+@ComponentScan(excludeFilters = { @Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+		@Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class) })
+public @interface SpringBootApplication
+```
+
+**Как Spring Boot поднимает контекст:**
+1. Environment — собирает свойства и профили.
+2. ApplicationContext — создаёт и конфигурирует контейнер бинов.
+3. BeanFactory — регистрирует все бины и зависимости.
+4. Refresh — инициализация бинов и вызов lifecycle‑методов.
+5. Listeners — запускаются события приложения (ApplicationReadyEvent и др.).
+6. Embedded server — если это веб‑приложение, запускается встроенный сервер (Tomcat/Jetty).
+   
+То есть Boot проходит цепочку: конфигурация → создание бинов → инициализация → события → запуск веб‑сервера.

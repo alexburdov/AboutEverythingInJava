@@ -1,5 +1,12 @@
 ### Аспектно-ориентированное программирование, Spring AOP
 
+**Spring AOP** — это механизм аспектно‑ориентированного программирования, который позволяет вынести повторяющуюся функциональность (логирование, транзакции, безопасность) в отдельные аспекты, не смешивая её с бизнес‑логикой.
+
+#### Ограничения Spring AOP:
+- Вызовы внутри одного класса — методы вызывают друг друга напрямую, прокси не срабатывает.
+- Финальные классы и методы — CGLIB‑прокси не могут переопределить final, JDK‑прокси не работают с классами.
+- Private‑методы — прокси работает только с public/protected/package‑private методами, private не зааопишь.
+
 #### Аспект (Aspect)
 Aspect — модуль в котором собраны описания Pointcut и Advice.
 
@@ -34,3 +41,58 @@ Pointcut — это срез, запрос точек присоединения
 **Статическое** - внедрение во время компиляции (AspectJ)
 
 **Динамическое** - внедрение во время выполнения (Spring AOP)
+
+#### CGLIB 
+
+**CGLIB** — это библиотека, которую Spring использует для создания прокси‑классов через наследование. Она позволяет оборачивать бин, если тот не реализует интерфейс (в отличие от JDK Dynamic Proxy, который работает только с интерфейсами).
+
+То есть, AOP работает через прокси, и эти ограничения — прям следствие этого механизма.
+
+С ограничением AOP часто на собесах дают задачки, пример:
+```java
+@Service
+public class OrderService {
+
+    @PostConstruct
+    public void init() {
+        // Вызов транзакционного метода внутри @PostConstruct
+        processPayment(); // @Transactional здесь не сработает
+    }
+
+    @Transactional
+    public void processPayment() {
+        System.out.println("Оплата выполнена");
+    }
+}
+```
+**Почему не работает:**
+1. Механизм проксирования: Spring создает прокси вокруг бина для обработки @Transactional
+2. Внутренний вызов: Когда вы вызываете processPayment() из init() того же класса, вы обходите прокси и вызываете метод напрямую
+3. AOP не применяется: Перехватчик транзакций не срабатывает, так как вызов не проходит через прокси
+
+**Как обойти:**
+
+BeanPostProcessors are applied before any initialization methods (such as @PostConstruct)
+
+В Spring Framework Reference явно указано, что BeanPostProcessors (которые создают AOP прокси) применяются до вызова @PostConstruct
+
+```java
+@Component
+public class OrderService {
+    
+    @Autowired
+    private ApplicationContext context;
+    
+    @PostConstruct
+    public void init() {
+        context.getBean(MyService.class).processPayment();
+    }
+
+    @Transactional
+    public void processPayment() {
+        System.out.println("Оплата выполнена");
+    }
+}
+```
+Такое решение с ApplicationContext должно сработать. Но сразу хочется сказать, скажите что нужно вынести в таком случае метод в отдельный бин например, если уж скажут, что нельзя и хотим именно в этом, тогда можно сказать про ApplicationContext
+

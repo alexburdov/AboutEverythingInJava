@@ -1,8 +1,14 @@
 ### Жизненный цикл bean-компонента
 
 Жизненный цикл bean-компонента состоит из этапов:
-- Этап инициализации
-- Этап уничтожения
+Создание — контейнер создаёт объект бина.
+1. Заполнение зависимостями — внедряются все зависимости (DI).
+2. Инициализация — вызываются методы инициализации:
+   - аннотация @PostConstruct
+   - если бин через @Bean, можно указать initMethod. 
+3. Уничтожение — вызываются методы разрушения:
+   - аннотация @PreDestroy
+   - destroyMethod у @Bean.
 
 #### Этап инициализации bean-компонента
 - BeanFactory создает bean-компонент
@@ -18,7 +24,7 @@
 - BeanPostProcessor#postProcessAfterInitialization обрабатывает bean-компонент
 
 #### Этап уничтожения bean-компонента
-- InitDestroyAnnotationBeanPostProcessor.postProcessBeforeDestruction вызывает методы обратного вызова, отмеченные как@PreDestroy
+- InitDestroyAnnotationBeanPostProcessor.postProcessBeforeDestruction вызывает методы обратного вызова, отмеченные как @PreDestroy
 - BeanFactory вызывает метод InitializingBean#destroy
 - BeanFactory вызывает метод обратного вызова, зарегистрированный как destroyMethod
 
