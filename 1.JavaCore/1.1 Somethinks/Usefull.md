@@ -106,3 +106,23 @@ public static <E extends Enum<E>> Map<String, E> enumMap(Class<E> enumClass) {
 #### Отличие интерфейсов Comparator и Comparable
 Интерфейс Comparable используется только для сравнения объектов класса, в котором данный интерфейс реализован. Т.е. interface Comparable определяет логику сравнения объекта определенного ссылочного типа внутри своей реализации (по правилам разработчика).
 Comparator представляет отдельную реализацию и ее можно использовать многократно и с различными классами. Т.е. interface Comparator позволяет создавать объекты, которые будут управлять процессом сравнения (например при сортировках).
+
+#### Сколько потоков выдержит система
+Современные веб-приложения часто используют модель «один поток на запрос»: каждому запросу выделяется поток, который обрабатывает его от начала до конца. Но увеличивать число потоков бесконечно нельзя.
+
+```java
+public static void main(String[] args) {
+    var threadCount = new AtomicInteger(0);
+    try {
+        while (true) {
+            var thread = new Thread(() -> {
+                threadCount.incrementAndGet();
+                LockSupport.park();
+            });
+            thread.start();
+        }
+    } catch (OutOfMemoryError error) {
+        System.out.println("Лимит ваших потоков: " + threadCount);
+    }
+}
+```
