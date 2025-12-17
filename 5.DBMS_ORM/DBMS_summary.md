@@ -54,6 +54,8 @@ CREATE INDEX idx_users_email_hash ON users USING hash(email);
 
 - Для массивов, jsonb, full-text search.
 - Отличен при поиске по вложенным структурам или множеству значений.
+- Сильно просаживает по скорости запись в БД
+- Основное применение поиск по Json полям
 
 ```sql
 CREATE INDEX idx_data_tags ON posts USING gin(tags);
@@ -63,6 +65,9 @@ CREATE INDEX idx_data_tags ON posts USING gin(tags);
 
 - Для геоданных (PostGIS), поиска по диапазонам, tsvector.
 - Более универсален, но медленнее в некоторых кейсах, чем GIN.
+- В Postgresql имеются расширения
+  • pg_trgm – like, ilike, ~, ~* (regexp)
+  • btree_gist – сложные constraints с интервалами
 
 ```sql
 CREATE INDEX idx_events_location ON events USING gist(location);
