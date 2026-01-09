@@ -133,4 +133,17 @@
   - Объемы null: null_frac
   - Частые значения: most_common_vals и most_common_freqs
 
+#### Покрывающий индекс
+Это индекс, который содержит все нужные поля прямо в себе. PostgreSQL с версии 11 умеет делать это через INCLUDE.
+```sql
 
+-- Запрос
+SELECT name, email FROM users WHERE status = 'active';
+
+-- Обычный индекс
+CREATE INDEX idx_users_status ON users(status);
+
+-- Покрывающий индекс
+CREATE INDEX idx_users_status_cover ON users(status) INCLUDE (name, email);
+```
+Теперь PostgreSQL может ответить на запрос только по индексу, не трогая таблицу → быстрее.
