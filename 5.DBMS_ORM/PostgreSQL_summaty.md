@@ -147,3 +147,62 @@ CREATE INDEX idx_users_status ON users(status);
 CREATE INDEX idx_users_status_cover ON users(status) INCLUDE (name, email);
 ```
 Теперь PostgreSQL может ответить на запрос только по индексу, не трогая таблицу → быстрее.
+
+#### Соединения (Connections)
+
+PostgreSQL по умолчанию позволяет одновременно до 100 соединений (max_connections).
+- **Проблема**: слишком много прямых соединений создают нагрузку на память и CPU.
+- **Решение**: используйте пуллинг через PgBouncer или Pgpool-II.
+- **Совет**: на проде стремитесь держать max_connections < 200 и масштабируйте через пуллер.
+```ini
+  [databases]
+  mydb = host=127.0.0.1 port=5432 dbname=mydb
+
+  [pgbouncer]
+  listen_addr = 0.0.0.0
+  listen_port = 6432
+  pool_mode = transaction
+  max_client_conn = 500
+  default_pool_size = 20
+```
+#### Буфер (Shared Buffers & Work Mem)
+
+PostgreSQL активно использует память для кэширования страниц и сортировок.
+
+- **shared_buffers**  – основной буфер кэша:
+```
+  shared_buffers = 4GB        # ≈25% от RAM на выделенном сервере
+```
+
+- **work_mem**  – память на сортировку/слияние одного потока:
+```
+  work_mem = 64MB             # для сложных запросов с сортировками и хэш-джоинами
+  maintenance_work_mem = 512MB # для VACUUM/CREATE INDEX
+```
+
+**Best practice:**
+- Установите shared_buffers ≈ 25% RAM.
+- Настройте work_mem исходя из числа параллельных операций, не превышайте общий объём памяти
+
+#### WAL (Write-Ahead Log)
+WAL обеспечивает надёжность и репликацию.
+- **wal_level**  – детальность логирования:
+```
+  wal_level = replica       # для потоковой репликации
+```
+- **checkpoint_timeout** и **max_wal_size**:
+```
+  checkpoint_timeout = 10min
+  max_wal_size = 1GB
+```
+ 
+- **Архивация WAL** для резервных копий:
+```
+  archive_mode = on
+  archive_command = 'cp %p /mnt/backup/wal/%f'
+```
+ 
+**Рекомендации:**
+- Увеличьте max_wal_size, если у вас большие всплески нагрузки.
+- Настройте сжатие WAL (pg_wal) для экономии места.
+
