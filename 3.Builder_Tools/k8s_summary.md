@@ -13,3 +13,69 @@ Kubernates services
 2. **NodePort**: Делает сервис доступным снаружи кластера, открывая статический порт на каждой Node (виртуальной машине/сервере) вашего кластера. Чтобы попасть в сервис, вы обращаетесь к <IP_любой_Nodes>:<NodePort>. Этот тип используется для прямого доступа к сервисам извне в режиме разработки или для сервисов, которым нужен фиксированный порт. 
 3. **LoadBalancer**: Наиболее мощный тип. Он автоматически запрашивает у облачного провайдера (например, AWS, GCP, Azure) создание внешнего балансировщика нагрузки, который направляет трафик на сервис. Балансировщик получает собственный внешний IP‑адрес. Это стандартный способ выхода в интернет для продакшн‑сервисов в облаке.
 
+#### Мониторинг
+1. **Spring Boot Actuator (Генерирует метрики).**
+   **Spring Boot Actuator & Micrometer**. Micrometer это как SLF4J, только для метрик. Это фасад. Вы пишете код один раз, а Micrometer умеет отправлять эти данные хоть в Prometheus, хоть в Datadog, хоть в New Relic.
+В pom.xml:
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-registry-prometheus</artifactId>
+</dependency>
+```
+В application.yaml:
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health, info
+```
+Теперь, если вы перейдете по адресу /actuator/prometheus, вы увидите не JSON, а скучный текст:
+```
+# HELP jvm_memory_used_bytes The amount of used memory
+# TYPE jvm_memory_used_bytes gauge
+jvm_memory_used_bytes{area="heap",id="G1 Eden Space",} 2.5165824E7
+http_server_requests_seconds_count{uri="/users",status="200",} 452.0
+```
+
+
+2. **Prometheus (Собирает и хранит их).**
+**Prometheus это Time Series Database (База данных временных рядов).** Она хранит цифры с привязкой ко времени.
+Его киллер-фича: Pull Model (Модель вытягивания).
+В отличие от логов, которые приложение само отправляет (Push), Prometheus сам приходит к вашему приложению раз в 15 секунд и скачивает (Scrape) данные со страницы /actuator/prometheus.
+Почему Pull лучше Push?
+Если ваше приложение под дикой нагрузкой и умирает, оно не сможет отправить метрики. Но Prometheus придет, увидит, что ответа нет, и зафиксирует: "Сервис упал".
+
+4. **Grafana (Рисует красивые графики).**
+Prometheus хранит данные, но смотреть на них в текстовом виде больно. Grafana подключается к Prometheus и превращает скучные цифры в космолет. Вы можете создать дашборды для всего:
+- JVM: Сколько памяти съедено? Как часто работает Garbage Collector?
+- Tomcat: Сколько потоков занято?
+- Бизнес-метрики: Сколько заказов оформлено за час? Какая выручка?
+Alerting (Оповещения): Самое важное - Графана умеет "кричать". Вы настраиваете правило: "Если количество ошибок 500 превышает 1% в течение 5 минут - отправь сообщение в Telegram/Slack команде дежурных".
+
+**Кастомные метрики**
+Spring дает кучу метрик из коробки (CPU, Memory, HTTP requests). Но бизнесу нужны свои цифры. Создать их легко через MeterRegistry.
+```java
+@Service
+public class OrderService {
+
+    private final Counter orderCounter;
+
+    public OrderService(MeterRegistry registry) {
+        // Создаем счетчик "orders.created"
+        this.orderCounter = registry.counter("orders.created");
+    }
+
+    public void createOrder(Order order) {
+        repo.save(order);
+        orderCounter.increment(); // +1 к метрике
+    }
+}
+```
+Теперь в Grafana вы увидите график "Заказов в секунду".
+
