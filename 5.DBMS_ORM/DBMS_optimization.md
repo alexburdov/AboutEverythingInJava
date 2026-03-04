@@ -105,3 +105,14 @@ SELECT schemaname, tablename, last_autovacuum
 - **Следи за типами данных.** JOIN по полям с разными типами (например, int и varchar) = неэффективный cast + тормоза.
 - **Проверь планы выполнения (EXPLAIN).** Не гадай, а смотри, что реально происходит. EXPLAIN ANALYZE - твой друг.
 
+#### Порядок выполнения 
+Очень важно понимать порядок выполнения.
+В SQL-запросе операторы выполняются в следующем порядке:
+1. FROM / JOIN
+2. WHERE
+3. GROUP BY
+4. HAVING
+5. SELECT
+6. DISTINCT
+7. ORDER BY
+8. LIMIT / OFFSET
