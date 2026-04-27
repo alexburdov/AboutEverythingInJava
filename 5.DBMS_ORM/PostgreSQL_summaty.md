@@ -206,3 +206,25 @@ WAL обеспечивает надёжность и репликацию.
 - Увеличьте max_wal_size, если у вас большие всплески нагрузки.
 - Настройте сжатие WAL (pg_wal) для экономии места.
 
+
+### Lateral
+
+Он буквально говорит: «Для каждой строки из Orders выполни подзапрос с её параметрами». Это похоже на foreach, где внутренняя выборка может меняться в зависимости от строки внешней таблицы.
+
+```sql
+
+SELECT 
+    o.order_id,
+    p.product_name,
+    p.amount
+FROM orders o,
+LATERAL (
+    SELECT *
+    FROM products p
+    WHERE p.order_id = o.order_id
+    ORDER BY p.amount DESC
+    LIMIT 1
+) p;
+
+```
+
